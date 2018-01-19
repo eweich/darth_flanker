@@ -9,7 +9,7 @@ from numpy import linspace
 # FLANKER VARIABLES
 
 num_trials = 1 # (len(evidence_conditions)-1) * 4 + 2 * num_trials
-num_blocks = 2
+num_blocks = 1
 mouse = False
 conds = ['congruent', 'incongruent', 'neutral']
 resp_keys = ['G', 'H']
@@ -35,11 +35,9 @@ orient_dur = .4
 wait_dur = .5
 wait_jitter = .5
 resp_delay = .2
-iti = .5
-iti_jitter = .3
+iti = .75
+iti_jitter = .5
 feedback_dur = 1.0
-
-prac_set1 = [45.,45.,-45.,-45.]
 
 
 # list generation
@@ -52,40 +50,60 @@ def gen_fblocks():
                 for l in range(num_locs):
                     for s in evidence_conditions:
                         if s == 0.:
-                            # NEUTRAL RIGHT
+                            # NEUTRAL 1 RIGHT
                             trial = {'condition': "=",
                                      'target_ev': 45.,
-                                     'flank_ev': 0.,
+                                     'inner_flank_ev': 45.,
+                                     'outer_flank_ev':-45.,
                                      'loc':(360./num_locs)*l,
                                      'corr_resp': pos_resps[-1]}
                             temp_block.append(trial.copy())
 
-                            #NEUTRAL LEFT
+
+                            #Neutral 2 RIGHT
+                            trial['inner_flank_ev'] = -45.
+                            trial['outer_flank_ev'] = 45.
+                            trial['condition'] = "~"
+                            temp_block.append(trial.copy())
+
+                            # Neutral 2 LEFt
                             trial['corr_resp'] = pos_resps[0]
+                            trial['inner_flank_ev'] = 45.
+                            trial['outer_flank_ev'] = -45.
                             trial['target_ev'] = -45.
+                            temp_block.append(trial.copy())
+
+                            # Neutral 1 LEFT
+                            trial['inner_flank_ev'] = -45.
+                            trial['outer_flank_ev'] = 45.
+                            trial['condition'] = "="
                             temp_block.append(trial.copy())
                         else:
                             # CONGRUENT RIGHT
                             trial = {'condition': "+",
                                      'target_ev': 45.,
-                                     'flank_ev': s,
+                                     'inner_flank_ev': s,
+                                     'outer_flank_ev': s,
                                      'loc':(360./num_locs)*l,
                                      'corr_resp': pos_resps[-1]}
                             temp_block.append(trial.copy())
 
                             #INCONGRUENT RIGHT
-                            trial['flank_ev'] = -1*s
+                            trial['inner_flank_ev'] = -1*s
+                            trial['outer_flank_ev'] = -1*s
                             trial['condition'] = "-"
                             temp_block.append(trial.copy())
 
                             # INCONGRUENT LEFt
                             trial['corr_resp'] = pos_resps[0]
-                            trial['flank_ev'] = s
+                            trial['inner_flank_ev'] = s
+                            trial['outer_flank_ev'] = s
                             trial['target_ev'] = -45.
                             temp_block.append(trial.copy())
 
                             # CONGRUENT LEFT
-                            trial['flank_ev'] = -1*s
+                            trial['inner_flank_ev'] = -1*s
+                            trial['outer_flank_ev'] = -1*s
                             trial['condition'] = "+"
                             temp_block.append(trial.copy())
             random.shuffle(temp_block)
@@ -94,7 +112,7 @@ def gen_fblocks():
 
 
 @Subroutine
-def Flanks_with_resp(self, num_flanks, target_ev, flank_ev,
+def Flanks_with_resp(self, target_ev, num_flanks, inner_flank_ev, outer_flank_ev,
                      df, line_width, center_x, center_y, screen_h,
                      screen_w, corr_resp, loc, sat):
     self.X0 = center_x + ((screen_w/5.)*Ref(cos, loc*(pi/180.)))
@@ -109,10 +127,11 @@ def Flanks_with_resp(self, num_flanks, target_ev, flank_ev,
     #self.center_x = center_x
     #self.center_y = center_y
     self.target_alpha = Ref(radians, target_ev)
-    self.flank_alpha = Ref(radians, flank_ev)
-    self.ev = [self.flank_alpha]*num_flanks + [self.target_alpha] + [self.flank_alpha]*num_flanks
-    self.vert_flanks = [self.flank_alpha]*num_flanks
-    self.inner_flanks = [self.flank_alpha]*(num_flanks-1)
+    self.inner_flank_alpha = Ref(radians, inner_flank_ev)
+    self.outer_flank_alpha = Ref(radians, outer_flank_ev)
+    self.ev = [self.outer_flank_alpha]+[self.inner_flank_alpha] + [self.target_alpha] + [self.inner_flank_alpha] + [self.outer_flank_alpha]
+    self.vert_flanks = [self.outer_flank_alpha]+[self.inner_flank_alpha]
+    self.inner_flanks = [self.outer_flank_alpha]
     #self.X0 = center_x
     # Numflanks is doubled.
     with Parallel() as flanker:
@@ -249,7 +268,8 @@ def Flanker(self, screen_h, screen_w):
 
         # upper left
         Flanks_with_resp(num_flanks=num_flanks,
-                                target_ev=45., flank_ev=45.,
+                                target_ev=45., inner_flank_ev=45.,
+                                outer_flank_ev=45.,
                                 df=config_df,
                                 line_width=line_width,
                                 center_x=screen_w/2. - ((screen_w/5.)*Ref(cos, 0.)) - screen_w/4.,
@@ -260,7 +280,8 @@ def Flanker(self, screen_h, screen_w):
                                 loc=0., sat=[255.,255.,255.])
         # upper middle
         Flanks_with_resp(num_flanks=num_flanks,
-                                target_ev=45., flank_ev=0,
+                                target_ev=45., inner_flank_ev=45.,
+                                outer_flank_ev=-45.,
                                 df=config_df,
                                 line_width=line_width,
                                 center_x=screen_w/2. - ((screen_w/5.)*Ref(cos, 0.)),
@@ -271,7 +292,8 @@ def Flanker(self, screen_h, screen_w):
                                 loc=0., sat=[255.,255.,255.])
         # upper right
         Flanks_with_resp(num_flanks=num_flanks,
-                                target_ev=45., flank_ev=-45.,
+                                target_ev=45., inner_flank_ev=-45.,
+                                outer_flank_ev=-45.,
                                 df=config_df,
                                 line_width=line_width,
                                 center_x=screen_w/2. - ((screen_w/5.)*Ref(cos, 0.)) + screen_w/4.,
@@ -283,7 +305,8 @@ def Flanker(self, screen_h, screen_w):
 
         # lower left
         Flanks_with_resp(num_flanks=num_flanks,
-                                target_ev=-45., flank_ev=-45.,
+                                target_ev=-45., inner_flank_ev=-45.,
+                                outer_flank_ev=-45.,
                                 df=config_df,
                                 line_width=line_width,
                                 center_x=screen_w/2. - ((screen_w/5.)*Ref(cos, 0.)) - screen_w/4.,
@@ -294,7 +317,8 @@ def Flanker(self, screen_h, screen_w):
                                 loc=0, sat=[255.,255.,255.])
         # lower middle
         Flanks_with_resp(num_flanks=num_flanks,
-                                target_ev=-45., flank_ev=0.,
+                                target_ev=-45., inner_flank_ev=45.,
+                                outer_flank_ev=-45.,
                                 df=config_df,
                                 line_width=line_width,
                                 center_x=screen_w/2. - ((screen_w/5.)*Ref(cos, 0.)),
@@ -305,7 +329,8 @@ def Flanker(self, screen_h, screen_w):
                                 loc=0, sat=[255.,255.,255.])
         # lower right
         Flanks_with_resp(num_flanks=num_flanks,
-                                target_ev=-45., flank_ev=45.,
+                                target_ev=-45., inner_flank_ev=45.,
+                                outer_flank_ev=45.,
                                 df=config_df,
                                 line_width=line_width,
                                 center_x=screen_w/2. - ((screen_w/5.)*Ref(cos, 0.)) + screen_w/4.,
@@ -322,7 +347,8 @@ def Flanker(self, screen_h, screen_w):
                [45.,pos_resps[1]],[45.,pos_resps[1]]]) as prac_ev:
         Wait(1.0)
         p1 = Flanks_with_resp(num_flanks=2,
-                                target_ev=prac_ev.current[0], flank_ev=0.,
+                                target_ev=prac_ev.current[0], inner_flank_ev=0.,
+                                outer_flank_ev=0.,
                                 df=config_df,
                                 line_width=line_width,
                                 center_x=screen_w/2. - ((screen_w/5.)*Ref(cos, 0.)) ,
@@ -355,11 +381,13 @@ def Flanker(self, screen_h, screen_w):
         KeyPress()
     Wait(1.0)
 
-    with Loop([[45.,pos_resps[1],45.],[-45.,pos_resps[0],0.],
-               [45.,pos_resps[1],-45.],[45.,pos_resps[1],0.]]) as prac_ev:
+    with Loop([[45.,pos_resps[1],45.,45.],[-45.,pos_resps[0],-45.,45.],
+               [45.,pos_resps[1],-45.,-45.],[45.,pos_resps[1],-45.,45.]]) as prac_ev:
         Wait(1.0)
         p2 = Flanks_with_resp(num_flanks=num_flanks,
-                                target_ev=prac_ev.current[0], flank_ev=prac_ev.current[2],
+                                target_ev=prac_ev.current[0],
+                                inner_flank_ev=prac_ev.current[2],
+                                outer_flank_ev=prac_ev.current[3],
                                 df=config_df,
                                 line_width=line_width,
                                 center_x=screen_w/2. - ((screen_w/5.)*Ref(cos, 0.)) ,
@@ -391,12 +419,14 @@ def Flanker(self, screen_h, screen_w):
     with UntilDone():
         KeyPress()
     Wait(1.0)
-    with Loop([[-45.,pos_resps[0],45.],[45.,pos_resps[1],0.],
-               [-45.,pos_resps[0],-45.],[-45.,pos_resps[0],0.],
-               [45.,pos_resps[1],45.],[45.,pos_resps[1],-45.]]) as prac_ev:
+    with Loop([[-45.,pos_resps[0],45.,45.],[45.,pos_resps[1],-45.,45.],
+               [-45.,pos_resps[0],-45.,-45.],[-45.,pos_resps[0],-45.,45.],
+               [45.,pos_resps[1],45.,45.],[45.,pos_resps[1],-45.,-45.]]) as prac_ev:
         Wait(1.0)
         p3 = Flanks_with_resp(num_flanks=num_flanks,
-                                target_ev=prac_ev.current[0], flank_ev=prac_ev.current[2],
+                                target_ev=prac_ev.current[0],
+                                inner_flank_ev=prac_ev.current[2],
+                                outer_flank_ev=prac_ev.current[3],
                                 df=config_df,
                                 line_width=line_width,
                                 center_x=screen_w/2. - ((screen_w/5.)*Ref(cos, 0.)) ,
@@ -432,12 +462,14 @@ def Flanker(self, screen_h, screen_w):
           font_size=screen_h*INST_FONT_SIZE)
     with UntilDone():
         KeyPress()
-    with Loop([[45.,pos_resps[1],0.,(360./num_locs)*5],[-45.,pos_resps[0],-45,(360./num_locs)*1],
-               [-45.,pos_resps[0],45.,(360./num_locs)*3],[45.,pos_resps[1],45.,(360./num_locs)*6],
-               [45.,pos_resps[1],0.,(360./num_locs)*2],[-45.,pos_resps[0],-45.,(360./num_locs)*4]]) as prac_ev:
+    with Loop([[45.,pos_resps[1],45.,(360./num_locs)*5,-45.],[-45.,pos_resps[0],-45,(360./num_locs)*1,-45.],
+               [-45.,pos_resps[0],45.,(360./num_locs)*3,45.],[45.,pos_resps[1],45.,(360./num_locs)*6,45.],
+               [45.,pos_resps[1],-45.,(360./num_locs)*2,45.],[-45.,pos_resps[0],-45.,(360./num_locs)*4,-45.]]) as prac_ev:
         Wait(1.0)
         p4 = Flanks_with_resp(num_flanks=num_flanks,
-                            target_ev=prac_ev.current[0], flank_ev=prac_ev.current[2],
+                            target_ev=prac_ev.current[0],
+                            inner_flank_ev=prac_ev.current[2],
+                            outer_flank_ev=prac_ev.current[4],
                             df=config_df,
                             line_width=line_width,
                             center_x=screen_w/2.,
@@ -474,14 +506,16 @@ def Flanker(self, screen_h, screen_w):
           font_size=screen_h*INST_FONT_SIZE)
     with UntilDone():
         KeyPress()
-    with Loop([[45.,pos_resps[1],0.,(360./6)*6],[45.,pos_resps[1],45,(360./6)*3],
-               [-45.,pos_resps[0],-45.,(360./6)*1],[-45.,pos_resps[0],0.,(360./6)*5],
-               [45.,pos_resps[1],-45.,(360./6)*4],[-45.,pos_resps[0],45.,(360./6)*2],
-               [45.,pos_resps[1],-45.,(360./6)*3],[-45.,pos_resps[0],0.,(360./6)*1],
-               [-45.,pos_resps[0],0.,(360./6)*4],[45.,pos_resps[1],45.,(360./6)*6]]) as prac_ev:
+    with Loop([[45.,pos_resps[1],-45.,(360./6)*6,45.],[45.,pos_resps[1],45,(360./6)*3,45.],
+               [-45.,pos_resps[0],-45.,(360./6)*1,-45.],[-45.,pos_resps[0],45.,(360./6)*5,-45.],
+               [45.,pos_resps[1],-45.,(360./6)*4,-45.],[-45.,pos_resps[0],45.,(360./6)*2,45.],
+               [45.,pos_resps[1],-45.,(360./6)*3,-45.],[-45.,pos_resps[0],-45.,(360./6)*1,45.],
+               [-45.,pos_resps[0],45.,(360./6)*4,-45.],[45.,pos_resps[1],45.,(360./6)*6,45.]]) as prac_ev:
         Wait(1.0)
         p5 = Flanks_with_resp(num_flanks=num_flanks,
-                            target_ev=prac_ev.current[0], flank_ev=prac_ev.current[2],
+                            target_ev=prac_ev.current[0],
+                            inner_flank_ev=prac_ev.current[2],
+                            outer_flank_ev=prac_ev.current[4],
                             df=config_df,
                             line_width=line_width,
                             center_x=screen_w/2.,
@@ -527,7 +561,9 @@ def Flanker(self, screen_h, screen_w):
             # present stimulus
             test_stim = Flanks_with_resp(num_flanks=num_flanks,
                                target_ev=trial.current['target_ev'],
-                               flank_ev=trial.current['flank_ev'], df=self.df,
+                               inner_flank_ev=trial.current['inner_flank_ev'],
+                               outer_flank_ev=trial.current['outer_flank_ev'],
+                               df=self.df,
                                line_width=line_width, center_x=screen_w/2.,
                                center_y=screen_h/2., screen_h=screen_h, screen_w=screen_w,
                                corr_resp=trial.current['corr_resp'],
