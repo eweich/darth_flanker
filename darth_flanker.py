@@ -556,7 +556,7 @@ def Flanker(self, screen_h, screen_w):
         with Loop(block.current) as trial:
 
             # wait some jittered amount
-            Wait(duration=wait_dur, jitter=wait_jitter)
+            Wait(duration=iti, jitter=iti_jitter)
 
             # present stimulus
             test_stim = Flanks_with_resp(num_flanks=num_flanks,
@@ -609,7 +609,7 @@ def Flanker(self, screen_h, screen_w):
         Log(name="flanker_block_score",
             block_score=self.block_score)
         # wait before suddenly presenting next block
-        Wait(iti, jitter=iti_jitter)
+        Wait(wait_dur, jitter=wait_jitter)
 
 
 
