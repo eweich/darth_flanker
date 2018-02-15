@@ -217,9 +217,9 @@ def _get_score(corr_trials, num_trials, rt_trials):
     iacc = con_corr/num_con
     cacc = incon_corr/num_incon"""
 
-    g = (((corr_trials/num_trials)-0.5)/0.5)*\
-        ( ((1/(sum([log(r+1) for r in rt_trials])/len(rt_trials)))-(1/log(2.5))) / \
-        ((1/log(1.4))-(1/log(2.5))) )
+    avec=(((corr_trials/num_trials)-.5)/.5)
+    rvec=(np.sum([(np.log(3.+1.)-np.log(r+1.))/((np.log(3.+1.)-np.log(.5+1.))) for r in rt_trials])/num_trials)
+    g=avec*rvec
 
     return int(g*100)
 
